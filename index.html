@@ -1,0 +1,648 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>导航</title>
+    <style type="text/css">
+    html,
+    body,
+    #container {
+      width: 93%;
+      height: 93%;
+    }
+    </style>
+    <style type="text/css">
+        #panel {
+            position: fixed;
+            background-color: white;
+            max-height: 90%;
+            overflow-y: auto;
+            top: 10px;
+            right: 10px;
+            width: 280px;
+        }
+        #panel .amap-call {
+            background-color: #009cf9;
+            border-top-left-radius: 4px;
+   	        border-top-right-radius: 4px;
+        }
+        #panel .amap-lib-driving {
+	        border-bottom-left-radius: 4px;
+   	        border-bottom-right-radius: 4px;
+            overflow: hidden;
+        }
+    </style>
+    <script type="text/javascript">
+
+        // 高德地图秘钥
+
+        window._AMapSecurityConfig = {
+
+            securityJsCode: '6aaea30db6e696bc6180b51c71afc703'
+
+        }
+
+</script>
+
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <script src="https://a.amap.com/jsapi_demos/static/demo-center/js/demoutils.js"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=4321f4d5385c5fe072c2623777882867&plugin=AMap.Driving,AMap.Walking,AMap.Riding,AMap.Autocomplete,AMap.PlaceSearch,AMap.Geocoder,AMap.Transfer,AMap.Geolocation,AMap.Weather,AMap.MouseTool,AMap.Scale,AMap.ToolBar,AMap.ControlBar,AMap.HawkEye,AMap.AutoComplete,AMap.DistrictSearch"></script>
+
+    <script type="text/javascript" src="https://cache.amap.com/lbs/static/addToolbar.js"></script>
+</head>
+<body>
+<div>
+    <label>
+        地图状态
+    </label>
+    <input type="text" id="mapsituation"  readonly/>
+</div>
+<div>
+    <label>
+        起点
+    </label>
+    <input type="textarea" id="beginning" />
+    <label>起点城市</label>
+    <input type="textarea" id="city1" />
+    
+</div>
+<div>
+    <label>
+        终点
+    </label>
+    <input type="textarea" id="destination" />
+    <label>终点城市</label>
+    <input type="textarea" id="city2" />
+    
+</div>
+<div>
+    <input type="button"  id="Route" value="驾车路径生成" onclick="CarRouteGenerate()" />
+    <input type="button"  id="WalkRoute" value="步行路径生成" onclick="WalkRouteGenerate()" />
+    <input type="button"  id="Riding" value="骑行路径生成" onclick="RidingRouteGenerate()" />
+    <input type="button"  id="Transfer" value="公交路线" onclick="TransferRouteGenerate()" />
+    <input type="button"  id="GetLoc" value="定位" onclick="DoLoction()" />
+    
+    
+
+    
+</div>
+<div>
+    <label>
+        输入城市信息
+    </label>
+    <input type="textarea" id="cityweather" />
+    <input type="button"  id="Weather" value="天气查询" onclick="geoCode()" />
+</div>
+<div>
+    <label>
+        点击图层获取经纬度
+    </label>
+    <input type="textarea" id="LonLattext" disabled/>
+    <input type="button"  id="LonLat" value="获取经纬度" onclick="GetLonLat()" />
+</div>
+<div>
+    <label>
+        关键字搜索  搜索的城市
+    </label>
+    <input type="textarea" id="keywordsearchcity" >
+    <label>
+        关键词/字
+    </label>
+    <input type="textarea" id="keywordofpoi" >
+    <input type="button"  id="keysearch" value="关键字搜索" onclick="KeyWordSearch()" />
+    
+</div>
+<div>
+    <label>
+        行政区边界查询 行政区级别
+    </label>
+    <select id="level">
+        <option value="district">district</option>
+        <option value="city">city</option>
+        <option value="province">province</option>
+    </select>
+    <label>
+        名称/adcode
+    </label>
+    <input id='district' type="textarea" >
+    <input type="button"  id="areasearch" value="行政区边界查询" onclick="areasearchSearch()" />
+</div>
+<div >
+    <div class="input-item">
+      <input type="radio" name='func'  value='rule'><span class="input-text">距离测量</span>
+      <input type="radio" name='func' value='measureArea'><span class="input-text">面积测量</span>
+      <input id="close" type="button" class="btn" value="关闭" />
+    </div>
+  
+</div>
+<div id="container"></div>
+<div class='input-card'>
+    <div class="input-item">
+        <input type="checkbox" checked onclick="toggleScale(this)"/>比例尺
+    </div>
+    
+    <div class="input-item">
+        <input type="checkbox" checked id="toolbar" onclick="toggleToolBar(this)"/>工具条
+    </div>
+    
+    <div class="input-item">
+        <input type="checkbox" checked id="controlBar" onclick="toggleControlBar(this)"/>工具条方向盘
+    </div>
+    
+    <div class="input-item">
+        <input type="checkbox" checked id="overview" onclick="toggleOverViewShow(this)"/>显示鹰眼
+    </div>
+</div>
+
+<div id="tip" class="info">地图上右击鼠标，弹出自定义样式的右键菜单</div>
+
+
+
+<div id="panel"></div>
+<script type="text/javascript">
+    
+    var autobeginning = new AMap.AutoComplete({
+        input: "beginning"
+    });
+    var autodestination = new AMap.AutoComplete({
+        input: "destination"
+    });
+    var city1;
+    var city2;
+    var begin;
+    var des;
+    city1=document.getElementById("city1");
+    city2=document.getElementById("city2");
+    begin=document.getElementById("beginning");
+    des=document.getElementById("destination");
+    console.log(city1);
+    let district=null;
+    let polygon;
+    
+    
+    var lnglat = new AMap.LngLat(116.397, 39.918);
+    
+    //基本地图加载
+    var scale = new AMap.Scale(),
+    toolBar = new AMap.ToolBar({
+        position: {
+            top: '110px',
+            right: '40px'
+        }
+    }),
+    controlBar = new AMap.ControlBar({
+        position: {
+            top: '10px',
+            right: '10px',
+        }
+    }),
+    overView = new AMap.HawkEye({
+        opened: false
+    }),
+    map = new AMap.Map("container", {
+        viewMode: '3D',
+        zoom: 4,
+        pitch: 30,
+    });
+    map.addControl(scale);
+    map.addControl(toolBar);
+    map.addControl(controlBar);
+    map.addControl(overView);
+    map.on('complete', function() {
+        document.getElementById('mapsituation').value = "地图图块加载完毕！当前地图中心点为：" + map.getCenter();
+    });
+ //创建右键菜单
+    var contextMenu = new AMap.ContextMenu();
+
+    //右键放大
+    contextMenu.addItem("放大一级", function () {
+        map.zoomIn();
+    }, 0);
+
+    //右键缩小
+    contextMenu.addItem("缩小一级", function () {
+        map.zoomOut();
+    }, 1);
+
+    //右键显示全国范围
+    contextMenu.addItem("缩放至全国范围", function (e) {
+        map.setZoomAndCenter(4, [108.946609, 34.262324]);
+    }, 2);
+    
+
+    
+    //地图绑定鼠标右击事件——弹出右键菜单
+    map.on('rightclick', function (e) {
+        contextMenu.open(map, e.lnglat);
+        contextMenuPositon = e.lnglat;
+    });
+
+    contextMenu.open(map, lnglat);
+    
+   
+</script>
+<script>
+    function CarRouteGenerate(){
+        //构造路线导航类
+    var driving = new AMap.Driving({
+        map: map,
+        panel: "panel"
+    }); 
+    // 根据起终点名称规划驾车导航路线
+    driving.search([
+        {keyword: begin.value,city:city1.value},
+        {keyword: des.value,city:city2.value}
+    ], function(status, result) {
+        // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+        if (status === 'complete') {
+            log.success('绘制驾车路线完成')
+        } else {
+            log.error('获取驾车数据失败：' + result)
+        }
+    });
+    }
+    function WalkRouteGenerate(){
+        //构造路线导航类
+    var driving = new AMap.Walking({
+        map: map,
+        panel: "panel"
+    }); 
+    // 根据起终点名称规划驾车导航路线
+    driving.search([
+        {keyword: begin.value,city:city1.value},
+        {keyword: des.value,city:city2.value}
+    ], function(status, result) {
+        // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+        if (status === 'complete') {
+            log.success('绘制步行路线完成')
+        } else {
+            log.error('获取步行数据失败：' + result)
+        }
+    });
+    }
+
+    function RidingRouteGenerate(){
+            //构造路线导航类
+    var driving = new AMap.Riding({
+        map: map,
+        panel: "panel"
+    }); 
+    // 根据起终点名称规划驾车导航路线
+    driving.search([
+        {keyword: begin.value,city:city1.value},
+        {keyword: des.value,city:city2.value}
+    ], function(status, result) {
+        // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+        if (status === 'complete') {
+            log.success('绘制骑行路线完成')
+        } else {
+            log.error('获取骑行数据失败：' + result)
+        }
+    });
+
+    }
+
+    function TransferRouteGenerate(){
+        var driving = new AMap.Transfer({
+        map: map,
+        panel: "panel"
+    }); 
+    // 根据起终点名称规划驾车导航路线
+    driving.search([
+        {keyword: begin.value,city:city1.value},
+        {keyword: des.value,city:city2.value}
+    ], function(status, result) {
+        // result 即是对应的驾车导航信息，相关数据结构文档请参考  https://lbs.amap.com/api/javascript-api/reference/route-search#m_DrivingResult
+        if (status === 'complete') {
+            log.success('绘制公交路线完成')
+        } else {
+            log.error('获取公交数据失败：' + result)
+        }
+    });
+
+    }
+    function DoLoction(){
+        geolocation = new AMap.Geolocation({
+        noIpLocate:0,
+        enableHighAccuracy: true,//是否使用高精度定位，默认:true
+        timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+        maximumAge: 0,           //定位结果缓存0毫秒，默认：0
+        convert: true,           //自动偏移坐标，偏移后的坐标为高德坐标，默认：true
+        showButton: true,        //显示定位按钮，默认：true
+        buttonPosition: 'LB',    //定位按钮停靠位置，默认：'LB'，左下角
+        buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+        showMarker: true,        //定位成功后在定位到的位置显示点标记，默认：true
+        showCircle: true,        //定位成功后用圆圈表示定位精度范围，默认：true
+        panToLocation: true,     //定位成功后将定位到的位置作为地图中心点，默认：true
+        zoomToAccuracy:true      //定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false
+    });
+    map.addControl(geolocation);
+    geolocation.getCurrentPosition();
+    //AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
+    //AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+    }
+    function GetWeather(){
+        
+        var weather = new AMap.Weather();
+        
+
+    //执行实时天气信息查询
+    weather.getLive(document.getElementById("cityweather").value, function(err, data) {
+
+        var geocoder = new AMap.Geocoder({
+        city: data["province"], //城市设为北京，默认：“全国”
+    });
+      
+     
+        console.log(err, data);
+        alert("省份："+data["province"]+"\n"+"城市："+data["city"]+"\n"+"编码："+data["adcode"]+"\n"
+        +"天气状况："+data["weather"]+"\n"+"气温："+data["temperature"]);
+    });
+    
+
+
+}
+function GetLonLat(){
+    map.on('click', function(e) {
+        document.getElementById("LonLattext").value = e.lnglat.getLng() + ',' + e.lnglat.getLat()
+    });
+}
+function toggleOverViewShow(checkbox) {
+        if (checkbox.checked) {
+            overView.show();
+        } else {
+            overView.hide();
+        }
+    }
+    
+
+
+</script>
+<script>
+    function geoCode() {
+        let weatherandinfo;
+        let weatherprovince;
+        let weathercity;
+        let weathercitycode;
+        let weathersituation;
+        let weatherT;
+
+        var weather = new AMap.Weather();
+        var marker = new AMap.Marker({
+        position: map.getCenter(),
+        icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+        anchor:'bottom-center',
+        offset: new AMap.Pixel(0, 0)
+    });
+        var cityprovince;
+        
+        
+         //执行实时天气信息查询
+    
+         weather.getLive(document.getElementById("cityweather").value, function(err, data=data) {
+        
+            weatherandinfo=data;
+            var geocoder = new AMap.Geocoder({
+        
+                city: data["province"], //城市设为北京，默认：“全国”
+    
+            });
+    
+        
+    
+     
+        weatherprovince=weatherandinfo["province"];
+        weatherT=weatherandinfo["temperature"];
+        weathercity=weatherandinfo["city"];
+        weathercitycode=weatherandinfo["adcode"];
+        weathersituation=weatherandinfo["weather"];
+
+        //console.log(err, data);
+        console.log(weatherprovince);
+        alert("省份："+data["province"]+"\n"+"城市："+data["city"]+"\n"+"编码："+data["adcode"]+"\n"
+        +"天气状况："+data["weather"]+"\n"+"气温："+data["temperature"]);
+       
+    });
+
+        var address  = document.getElementById('cityweather').value;
+        var geocoder = new AMap.Geocoder({
+        city: cityprovince, //城市设为北京，默认：“全国”
+    });
+        geocoder.getLocation(address, function(status, result) {
+            if (status === 'complete'&&result.geocodes.length) {
+                var lnglat = result.geocodes[0].location
+                //document.getElementById('lnglat').value = lnglat;
+                marker.setPosition(lnglat);
+                map.add(marker);
+                map.setFitView(marker);
+                marker.setTitle('天气');
+
+// 设置label标签
+// label默认蓝框白底左上角显示，样式className为：amap-marker-label
+marker.setLabel({
+    direction:'right',
+    offset: new AMap.Pixel(10, 0),  //设置文本标注偏移量
+    content: "省份："+weatherprovince+"\n"+"城市："+weathercity+"\n"+"编码："+weathercitycode+"\n"
+        +"天气状况："+weathersituation+"\n"+"气温："+weatherT//设置文本标注内容
+});
+            }else{
+                log.error('根据地址查询位置失败');
+            }
+        });
+        
+        
+    }
+    
+    
+    //document.getElementById("geo").onclick = geoCode;
+    document.getElementById('cityweather').onkeydown = function(e) {
+        if (e.keyCode === 13) {
+            geoCode();
+            return false;
+        }
+        return true;
+    
+    };
+    function toggleScale(checkbox) {
+        if (checkbox.checked) {
+            scale.show();
+        } else {
+            scale.hide();
+        }
+    }
+    function toggleToolBar(checkbox) {
+        if (checkbox.checked) {
+            showToolBar();
+        } else {
+            hideToolBar();
+        }
+    }
+    function toggleControlBar(checkbox) {
+        if (checkbox.checked) {
+            controlBar.show()
+        } else {
+            controlBar.hide()
+        }
+    }
+    function toggleOverViewShow(checkbox) {
+        if (checkbox.checked) {
+            overView.show();
+        } else {
+            overView.hide();
+        }
+    }
+
+    function showToolBar() {
+        document.getElementById('toolbar').checked = true;
+        toolBar.show();
+    }
+    function hideToolBar() {
+        document.getElementById('toolbar').checked = false;
+        toolBar.hide();
+    }
+    function showControlBar() {
+        document.getElementById('controlBar').checked = true;
+        controlBar.show();
+    }
+    function hideControlBar() {
+        document.getElementById('controlBar').checked = false;
+        controlBar.hide();
+    }
+    function KeyWordSearch(){
+        var placeSearch = new AMap.PlaceSearch({
+            pageSize: 5, // 单页显示结果条数
+            pageIndex: 1, // 页码
+            city: document.getElementById("keywordsearchcity").value, // 兴趣点城市
+            citylimit: true,  //是否强制限制在设置的城市内搜索
+            map: map, // 展现结果的地图实例
+            panel: panel, // 结果列表将在此容器中进行展示。
+            autoFitView: true // 是否自动调整地图视野使绘制的 Marker点都处于视口的可见范围
+        });
+        //关键字查询
+        placeSearch.search(document.getElementById("keywordofpoi").value);
+    }
+    function areasearchSearch(){
+        drawBounds();
+    
+    document.getElementById('district').onkeydown = function(e) {
+        if (e.keyCode === 13) {
+            drawBounds();
+            return false;
+        }
+        return true;
+    };
+
+    }
+    
+    function drawBounds() {
+        //加载行政区划插件
+        if(!district){
+            //实例化DistrictSearch
+            var opts = {
+                subdistrict: 0,   //获取边界不需要返回下级行政区
+                extensions: 'all',  //返回行政区边界坐标组等具体信息
+                level: 'district'  //查询行政级别为 市
+            };
+            district = new AMap.DistrictSearch(opts);
+        }
+        //行政区查询
+        district.setLevel(document.getElementById('level').value)
+        district.search(document.getElementById('district').value, function(status, result) {
+            if(polygon){
+              map.remove(polygon)//清除上次结果
+          	  polygon  = null;
+            }
+            var bounds = result.districtList[0].boundaries;
+            if (bounds) {
+              //生成行政区划polygon
+              for(var i=0;i<bounds.length;i+=1){//构造MultiPolygon的path
+                bounds[i] = [bounds[i]]
+              }
+              polygon = new AMap.Polygon({
+                strokeWeight: 1,
+                path: bounds,
+                fillOpacity: 0.4,
+                fillColor: '#80d8ff',
+                strokeColor: '#0091ea'
+              });
+              map.add(polygon)
+              map.setFitView(polygon);//视口自适应
+            }
+        });
+    }
+    
+</script>
+
+<script>
+    function draw(type){
+     switch(type){
+       case 'rule':{
+           mouseTool.rule({
+               startMarkerOptions : {//可缺省
+                   icon: new AMap.Icon({
+                       size: new AMap.Size(19, 31),//图标大小
+                       imageSize:new AMap.Size(19, 31),
+                       image: "https://webapi.amap.com/theme/v1.3/markers/b/start.png"
+                   }),
+                   offset: new AMap.Pixel(-9, -31)
+               },
+               endMarkerOptions : {//可缺省
+                   icon: new AMap.Icon({
+                       size: new AMap.Size(19, 31),//图标大小
+                       imageSize:new AMap.Size(19, 31),
+                       image: "https://webapi.amap.com/theme/v1.3/markers/b/end.png"
+                   }),
+                   offset: new AMap.Pixel(-9, -31)
+               },
+               midMarkerOptions : {//可缺省
+                   icon: new AMap.Icon({
+                       size: new AMap.Size(19, 31),//图标大小
+                       imageSize:new AMap.Size(19, 31),
+                       image: "https://webapi.amap.com/theme/v1.3/markers/b/mid.png"
+                   }),
+                   offset: new AMap.Pixel(-9, -31)
+               },
+               lineOptions : {//可缺省
+                   strokeStyle: "solid",
+                   strokeColor: "#FF33FF",
+                   strokeOpacity: 1,
+                   strokeWeight: 2
+               }
+               //同 RangingTool 的 自定义 设置，缺省为默认样式
+           });
+           break;
+       }
+       case 'measureArea':{
+           mouseTool.measureArea({
+               strokeColor:'#80d8ff',
+               fillColor:'#80d8ff',
+               fillOpacity:0.3
+             //同 Polygon 的 Option 设置
+           });
+           break;
+       }
+     }
+   }
+</script>
+<script>
+    var mouseTool = new AMap.MouseTool(map); 
+    var radios1 = document.getElementsByName('func');
+    for(var i=0;i<radios1.length;i+=1){
+        radios1[i].onchange = function(e){
+          draw(e.target.value)
+        }
+    }
+    draw('rule')
+
+    document.getElementById('close').onclick = function(){
+        mouseTool.close(true)//关闭，并清除覆盖物
+        for(var i=0;i<radios1.length;i+=1){
+            radios1[i].checked = false;
+        }
+    }
+</script>
+
+</body>
+</html>
